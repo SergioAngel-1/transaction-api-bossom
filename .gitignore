@@ -1,4 +1,6 @@
 # PHP
+src/vendor/
+src/composer.lock
 .env
 *.log
 
