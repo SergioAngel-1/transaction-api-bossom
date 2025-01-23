@@ -1,0 +1,87 @@
+{
+    "info": {
+        "name": "Transaction API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Create Transaction",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"accountNumberFrom\": \"123456789\",\n    \"accountTypeFrom\": \"CHECKING\",\n    \"accountNumberTo\": \"987654321\",\n    \"accountTypeTo\": \"SAVINGS\",\n    \"amount\": 100.50,\n    \"memo\": \"Test transaction\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:8080/api/transactions",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "8080",
+                    "path": ["api", "transactions"]
+                }
+            }
+        },
+        {
+            "name": "Get Transactions",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8080/api/transactions?page=1&limit=10",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "8080",
+                    "path": ["api", "transactions"],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "limit",
+                            "value": "10"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Transactions with Date Filter",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:8080/api/transactions?page=1&limit=10&startDate=2025-01-01&endDate=2025-12-31",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "8080",
+                    "path": ["api", "transactions"],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "limit",
+                            "value": "10"
+                        },
+                        {
+                            "key": "startDate",
+                            "value": "2025-01-01"
+                        },
+                        {
+                            "key": "endDate",
+                            "value": "2025-12-31"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

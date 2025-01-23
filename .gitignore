@@ -1,0 +1,49 @@
+# PHP
+/src/vendor/
+/src/composer.lock
+.env
+*.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+/src/logs/
+
+# Cache and session files
+/src/cache/
+/src/sessions/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test coverage reports
+/src/coverage/
+/src/phpunit.xml
+.phpunit.result.cache
+
+# Node modules (if using any JavaScript tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build files
+/dist/
+/build/
