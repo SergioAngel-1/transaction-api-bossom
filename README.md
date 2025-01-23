@@ -147,7 +147,7 @@ The database includes a default example transaction:
 
 To run tests:
 ```bash
-docker-compose exec php ./vendor/bin/phpunit
+docker-compose exec php vendor/bin/phpunit tests/
 ```
 
 ## Error Handling
