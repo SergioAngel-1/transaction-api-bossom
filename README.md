@@ -10,7 +10,8 @@ A RESTful API for managing financial transactions, built with PHP 8.2, Slim Fram
 - PostgreSQL database with optimized indexes
 - Clear and concise API documentation
 - Unit testing
-- Docker containers for development
+- Docker containers for development 
+- Personalized server configurations
 
 ## Requirements
 
