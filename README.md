@@ -94,9 +94,25 @@ GET /api/transactions
 
 Optional parameters:
 - `page`: Page number (default: 1)
+  Example: `/api/transactions?page=2`
 - `limit`: Records per page (default: 10, max: 100)
+  Example: `/api/transactions?limit=20`
 - `startDate`: Start date (YYYY-MM-DD)
+  Example: `/api/transactions?startDate=2025-01-01`
 - `endDate`: End date (YYYY-MM-DD)
+  Example: `/api/transactions?endDate=2025-12-31`
+
+Examples of combined parameters:
+```http
+# Get second page with 20 records per page
+GET /api/transactions?page=2&limit=20
+
+# Get transactions for January 2025
+GET /api/transactions?startDate=2025-01-01&endDate=2025-01-31
+
+# Get first 50 transactions from 2025
+GET /api/transactions?limit=50&startDate=2025-01-01&endDate=2025-12-31
+```
 
 ## Validations
 
