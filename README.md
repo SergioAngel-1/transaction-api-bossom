@@ -31,6 +31,8 @@ php-transaction-api/
 │   └── postgres/
 │       └── init.sql
 ├── src/
+│   ├── config/
+│   ├── public/
 │   ├── src/
 │   │   ├── Database/
 │   │   ├── Error/
