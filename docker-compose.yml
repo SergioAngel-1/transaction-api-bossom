@@ -1,15 +1,28 @@
+version: '3.8'
+
+# Services configuration
 services:
+  # PHP-FPM service with custom configuration
   php:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
     volumes:
       - ./src:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
     depends_on:
       - postgres
     networks:
       - app-network
+    environment:
+      PHP_IDE_CONFIG: "serverName=Docker"
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Nginx web server
   nginx:
     image: nginx:alpine
     ports:
@@ -21,13 +34,20 @@ services:
       - php
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # PostgreSQL database
   postgres:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: transactions_db
       POSTGRES_USER: app_user
       POSTGRES_PASSWORD: app_password
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -35,10 +55,19 @@ services:
       - "5432:5432"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d transactions_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
 
+# Network configuration
 networks:
   app-network:
     driver: bridge
 
+# Volume configuration
 volumes:
   postgres_data:
+    driver: local
