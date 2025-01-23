@@ -67,6 +67,8 @@ docker-compose ps
 
 ## API Endpoints
 
+Default server: `http://localhost:8080`
+
 ### Create Transaction
 
 ```http
