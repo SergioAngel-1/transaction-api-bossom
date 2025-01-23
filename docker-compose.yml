@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Services configuration
 services:
   # PHP-FPM service with custom configuration
