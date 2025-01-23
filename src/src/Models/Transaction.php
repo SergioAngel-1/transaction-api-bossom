@@ -1,27 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Database\DatabaseConnection;
 use PDO;
 use PDOException;
+use RuntimeException;
 
 class Transaction
 {
-    private $db;
+    private PDO $db;
+    private const FETCH_MODE = PDO::FETCH_ASSOC;
 
     public function __construct()
     {
         try {
             $this->db = DatabaseConnection::getInstance()->getConnection();
+            $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (\Exception $e) {
             error_log("Failed to get database connection: " . $e->getMessage());
-            throw $e;
+            throw new RuntimeException("Database connection failed", 0, $e);
         }
     }
 
     public function create(array $data): array
     {
+        $this->db->beginTransaction();
+
         try {
             $sql = "INSERT INTO transactions (
                 account_number_from, account_type_from,
@@ -57,11 +64,13 @@ class Transaction
             error_log("Executing create transaction with params: " . json_encode($params));
             
             $stmt->execute($params);
-            $result = $stmt->fetch();
+            $result = $stmt->fetch(self::FETCH_MODE);
             
             if (!$result) {
-                throw new \Exception("Failed to create transaction: No data returned");
+                throw new RuntimeException("Failed to create transaction: No data returned");
             }
+
+            $this->db->commit();
 
             // Convert snake_case to camelCase for response
             return [
@@ -76,16 +85,18 @@ class Transaction
                 'memo' => $result['memo']
             ];
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Database error in create transaction: " . $e->getMessage());
-            // Check for unique constraint violation
-            if ($e->getCode() == '23505') {
-                throw new \Exception("Duplicate trace number detected");
-            }
-            // Check for check constraint violations
-            if ($e->getCode() == '23514') {
-                throw new \Exception("Invalid data: Check constraints failed");
-            }
-            throw new \Exception("Failed to create transaction: " . $e->getMessage());
+            
+            match ($e->getCode()) {
+                '23505' => throw new RuntimeException("Duplicate trace number detected"),
+                '23514' => throw new RuntimeException("Invalid data: Check constraints failed"),
+                default => throw new RuntimeException("Failed to create transaction: " . $e->getMessage())
+            };
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log("Unexpected error in create transaction: " . $e->getMessage());
+            throw new RuntimeException("Failed to create transaction", 0, $e);
         }
     }
 
@@ -147,10 +158,10 @@ class Transaction
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 
             $stmt->execute();
-            $transactions = $stmt->fetchAll();
+            $transactions = $stmt->fetchAll(self::FETCH_MODE);
 
             // Convert snake_case to camelCase for each transaction
-            $formattedTransactions = array_map(function($transaction) {
+            $formattedTransactions = array_map(function(array $transaction): array {
                 return [
                     'transactionID' => $transaction['transaction_id'],
                     'accountNumberFrom' => $transaction['account_number_from'],
@@ -176,10 +187,10 @@ class Transaction
             ];
         } catch (PDOException $e) {
             error_log("Database error in getAll: " . $e->getMessage());
-            throw new \Exception("Failed to retrieve transactions: " . $e->getMessage());
+            throw new RuntimeException("Failed to retrieve transactions: " . $e->getMessage());
         } catch (\Exception $e) {
             error_log("General error in getAll: " . $e->getMessage());
-            throw $e;
+            throw new RuntimeException("Failed to retrieve transactions", 0, $e);
         }
     }
 }

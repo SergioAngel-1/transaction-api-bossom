@@ -21,3 +21,22 @@ CREATE INDEX idx_transactions_trace_number ON transactions(trace_number);
 -- Create index for account lookups
 CREATE INDEX idx_transactions_account_from ON transactions(account_number_from, account_type_from);
 CREATE INDEX idx_transactions_account_to ON transactions(account_number_to, account_type_to);
+
+-- Insert a single example transaction
+INSERT INTO transactions (
+    account_number_from,
+    account_type_from,
+    account_number_to,
+    account_type_to,
+    trace_number,
+    amount,
+    memo
+) VALUES (
+    '123456789',
+    'CHECKING',
+    '987654321',
+    'SAVINGS',
+    'EXAMPLE123456789',
+    1000.00,
+    'Initial example transaction'
+);

@@ -17,9 +17,11 @@ docker-compose.override.yml
 
 # Logs and databases
 *.log
-*.sql
 *.sqlite
 /src/logs/
+
+# Allow initialization SQL files
+!docker/postgres/init.sql
 
 # Cache and session files
 /src/cache/

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Ramsey\Uuid\Uuid;
@@ -10,8 +12,11 @@ use App\Error\ErrorHandler;
 // Create Transaction
 $app->post('/api/transactions', function (Request $request, Response $response) {
     try {
-        // Get JSON data
+        // Get and validate JSON data
         $data = $request->getParsedBody();
+        if (!is_array($data)) {
+            return ErrorHandler::validationErrors($response, ['json' => 'Invalid JSON format']);
+        }
         
         error_log("Received POST request with Content-Type: " . $request->getHeaderLine('Content-Type'));
         error_log("Received data: " . json_encode($data));
@@ -40,14 +45,21 @@ $app->post('/api/transactions', function (Request $request, Response $response) 
         error_log("Database error in POST /api/transactions: " . $e->getMessage());
         return ErrorHandler::jsonResponse(
             $response,
-            'Database error occurred: ' . $e->getMessage(),
+            'Database error occurred',
             500
+        );
+    } catch (\RuntimeException $e) {
+        error_log("Runtime error in POST /api/transactions: " . $e->getMessage());
+        return ErrorHandler::jsonResponse(
+            $response,
+            $e->getMessage(),
+            400
         );
     } catch (\Exception $e) {
         error_log("Unexpected error in POST /api/transactions: " . $e->getMessage());
         return ErrorHandler::jsonResponse(
             $response,
-            'An unexpected error occurred: ' . $e->getMessage(),
+            'An unexpected error occurred',
             500
         );
     }
@@ -67,8 +79,8 @@ $app->get('/api/transactions', function (Request $request, Response $response) {
         }
 
         // Set defaults and validate pagination parameters
-        $page = isset($queryParams['page']) ? (int)$queryParams['page'] : 1;
-        $limit = isset($queryParams['limit']) ? (int)$queryParams['limit'] : 10;
+        $page = isset($queryParams['page']) ? max(1, (int)$queryParams['page']) : 1;
+        $limit = isset($queryParams['limit']) ? min(100, max(1, (int)$queryParams['limit'])) : 10;
         $offset = ($page - 1) * $limit;
 
         error_log("Processing request with page: $page, limit: $limit, offset: $offset");
@@ -98,14 +110,21 @@ $app->get('/api/transactions', function (Request $request, Response $response) {
         error_log("Database error in GET /api/transactions: " . $e->getMessage());
         return ErrorHandler::jsonResponse(
             $response,
-            'Database error occurred: ' . $e->getMessage(),
+            'Database error occurred',
             500
+        );
+    } catch (\RuntimeException $e) {
+        error_log("Runtime error in GET /api/transactions: " . $e->getMessage());
+        return ErrorHandler::jsonResponse(
+            $response,
+            $e->getMessage(),
+            400
         );
     } catch (\Exception $e) {
         error_log("Unexpected error in GET /api/transactions: " . $e->getMessage());
         return ErrorHandler::jsonResponse(
             $response,
-            'An unexpected error occurred: ' . $e->getMessage(),
+            'An unexpected error occurred',
             500
         );
     }

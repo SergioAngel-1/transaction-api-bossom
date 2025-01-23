@@ -1,11 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Validation;
 
 class TransactionValidator
 {
     private array $errors = [];
     private const VALID_ACCOUNT_TYPES = ['CHECKING', 'SAVINGS', 'CREDIT', 'INVESTMENT'];
+    private const MIN_ACCOUNT_LENGTH = 9;
+    private const MAX_ACCOUNT_LENGTH = 12;
+    private const MAX_AMOUNT = 999999999.99;
+    private const MAX_MEMO_LENGTH = 255;
+    private const DATE_FORMAT = 'Y-m-d';
 
     public function validateCreate(?array $data): bool
     {
@@ -16,62 +23,37 @@ class TransactionValidator
             return false;
         }
 
-        // Required fields
-        $requiredFields = [
-            'accountNumberFrom' => 'Account number from is required',
-            'accountTypeFrom' => 'Account type from is required',
-            'accountNumberTo' => 'Account number to is required',
-            'accountTypeTo' => 'Account type to is required',
-            'amount' => 'Amount is required',
-            'memo' => 'Memo is required'
-        ];
-
-        foreach ($requiredFields as $field => $message) {
-            if (!isset($data[$field]) || empty($data[$field])) {
-                $this->errors[$field] = $message;
-            }
+        // Required fields validation
+        if (!$this->validateRequiredFields($data)) {
+            return false;
         }
 
-        // Validate account numbers (if provided)
+        // Account numbers validation
         if (isset($data['accountNumberFrom'])) {
-            if (!preg_match('/^\d{9,12}$/', $data['accountNumberFrom'])) {
-                $this->errors['accountNumberFrom'] = 'Account number must be between 9 and 12 digits';
-            }
+            $this->validateAccountNumber($data['accountNumberFrom'], 'accountNumberFrom');
         }
 
         if (isset($data['accountNumberTo'])) {
-            if (!preg_match('/^\d{9,12}$/', $data['accountNumberTo'])) {
-                $this->errors['accountNumberTo'] = 'Account number must be between 9 and 12 digits';
-            }
+            $this->validateAccountNumber($data['accountNumberTo'], 'accountNumberTo');
         }
 
-        // Validate account types (if provided)
+        // Account types validation
         if (isset($data['accountTypeFrom'])) {
-            if (!in_array(strtoupper($data['accountTypeFrom']), self::VALID_ACCOUNT_TYPES)) {
-                $this->errors['accountTypeFrom'] = 'Invalid account type. Must be one of: ' . implode(', ', self::VALID_ACCOUNT_TYPES);
-            }
+            $this->validateAccountType($data['accountTypeFrom'], 'accountTypeFrom');
         }
 
         if (isset($data['accountTypeTo'])) {
-            if (!in_array(strtoupper($data['accountTypeTo']), self::VALID_ACCOUNT_TYPES)) {
-                $this->errors['accountTypeTo'] = 'Invalid account type. Must be one of: ' . implode(', ', self::VALID_ACCOUNT_TYPES);
-            }
+            $this->validateAccountType($data['accountTypeTo'], 'accountTypeTo');
         }
 
-        // Validate amount (if provided)
+        // Amount validation
         if (isset($data['amount'])) {
-            if (!is_numeric($data['amount'])) {
-                $this->errors['amount'] = 'Amount must be a number';
-            } elseif ($data['amount'] <= 0) {
-                $this->errors['amount'] = 'Amount must be greater than 0';
-            } elseif ($data['amount'] > 999999999.99) {
-                $this->errors['amount'] = 'Amount exceeds maximum limit';
-            }
+            $this->validateAmount($data['amount']);
         }
 
         // Memo validation
-        if (!empty($data['memo']) && strlen($data['memo']) > 255) {
-            $this->errors['memo'] = 'Memo must not exceed 255 characters';
+        if (!empty($data['memo'])) {
+            $this->validateMemo($data['memo']);
         }
 
         return empty($this->errors);
@@ -85,49 +67,119 @@ class TransactionValidator
             return true; // No parameters is valid for GET request
         }
 
-        // Validate date format if provided
+        // Date validations
         if (!empty($params['startDate'])) {
-            if (!$this->isValidDate($params['startDate'])) {
-                $this->errors['startDate'] = 'Invalid date format. Use YYYY-MM-DD';
-            }
+            $this->validateDate($params['startDate'], 'startDate');
         }
 
         if (!empty($params['endDate'])) {
-            if (!$this->isValidDate($params['endDate'])) {
-                $this->errors['endDate'] = 'Invalid date format. Use YYYY-MM-DD';
-            }
+            $this->validateDate($params['endDate'], 'endDate');
         }
 
-        // Validate date range
+        // Date range validation
         if (empty($this->errors['startDate']) && empty($this->errors['endDate'])) {
-            if (isset($params['startDate']) && isset($params['endDate'])) {
-                if (strtotime($params['startDate']) > strtotime($params['endDate'])) {
-                    $this->errors['dateRange'] = 'Start date cannot be after end date';
-                }
+            if (isset($params['startDate'], $params['endDate'])) {
+                $this->validateDateRange($params['startDate'], $params['endDate']);
             }
         }
 
-        // Validate pagination parameters if provided
+        // Pagination validation
         if (isset($params['page'])) {
-            if (!is_numeric($params['page']) || $params['page'] < 1) {
-                $this->errors['page'] = 'Page must be a positive number';
-            }
+            $this->validatePaginationParam((int)$params['page'], 'page', 1);
         }
 
         if (isset($params['limit'])) {
-            if (!is_numeric($params['limit']) || $params['limit'] < 1 || $params['limit'] > 100) {
-                $this->errors['limit'] = 'Limit must be between 1 and 100';
-            }
+            $this->validatePaginationParam((int)$params['limit'], 'limit', 1, 100);
         }
 
         return empty($this->errors);
     }
 
+    private function validateRequiredFields(array $data): bool
+    {
+        $requiredFields = [
+            'accountNumberFrom' => 'Account number from is required',
+            'accountTypeFrom' => 'Account type from is required',
+            'accountNumberTo' => 'Account number to is required',
+            'accountTypeTo' => 'Account type to is required',
+            'amount' => 'Amount is required',
+            'memo' => 'Memo is required'
+        ];
+
+        $isValid = true;
+        foreach ($requiredFields as $field => $message) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                $this->errors[$field] = $message;
+                $isValid = false;
+            }
+        }
+
+        return $isValid;
+    }
+
+    private function validateAccountNumber(string $accountNumber, string $field): void
+    {
+        if (!preg_match('/^\d{' . self::MIN_ACCOUNT_LENGTH . ',' . self::MAX_ACCOUNT_LENGTH . '}$/', $accountNumber)) {
+            $this->errors[$field] = sprintf(
+                'Account number must be between %d and %d digits',
+                self::MIN_ACCOUNT_LENGTH,
+                self::MAX_ACCOUNT_LENGTH
+            );
+        }
+    }
+
+    private function validateAccountType(string $accountType, string $field): void
+    {
+        if (!in_array(strtoupper($accountType), self::VALID_ACCOUNT_TYPES, true)) {
+            $this->errors[$field] = 'Invalid account type. Must be one of: ' . implode(', ', self::VALID_ACCOUNT_TYPES);
+        }
+    }
+
+    private function validateAmount(mixed $amount): void
+    {
+        if (!is_numeric($amount)) {
+            $this->errors['amount'] = 'Amount must be a number';
+        } elseif ((float)$amount <= 0) {
+            $this->errors['amount'] = 'Amount must be greater than 0';
+        } elseif ((float)$amount > self::MAX_AMOUNT) {
+            $this->errors['amount'] = 'Amount exceeds maximum limit';
+        }
+    }
+
+    private function validateMemo(string $memo): void
+    {
+        if (strlen($memo) > self::MAX_MEMO_LENGTH) {
+            $this->errors['memo'] = sprintf('Memo must not exceed %d characters', self::MAX_MEMO_LENGTH);
+        }
+    }
+
+    private function validateDate(string $date, string $field): void
+    {
+        if (!$this->isValidDate($date)) {
+            $this->errors[$field] = 'Invalid date format. Use YYYY-MM-DD';
+        }
+    }
+
+    private function validateDateRange(string $startDate, string $endDate): void
+    {
+        if (strtotime($startDate) > strtotime($endDate)) {
+            $this->errors['dateRange'] = 'Start date cannot be after end date';
+        }
+    }
+
+    private function validatePaginationParam(int $value, string $field, int $min, ?int $max = null): void
+    {
+        if ($value < $min) {
+            $this->errors[$field] = ucfirst($field) . ' must be greater than or equal to ' . $min;
+        } elseif ($max !== null && $value > $max) {
+            $this->errors[$field] = ucfirst($field) . ' must be less than or equal to ' . $max;
+        }
+    }
+
     private function isValidDate(string $date): bool
     {
-        $format = 'Y-m-d';
-        $d = \DateTime::createFromFormat($format, $date);
-        return $d && $d->format($format) === $date;
+        $d = \DateTime::createFromFormat(self::DATE_FORMAT, $date);
+        return $d && $d->format(self::DATE_FORMAT) === $date;
     }
 
     public function getErrors(): array

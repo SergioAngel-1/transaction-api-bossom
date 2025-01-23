@@ -1,20 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Error;
 
 use Psr\Http\Message\ResponseInterface as Response;
 
 class ErrorHandler
 {
-    public static function jsonResponse(Response $response, string $message, int $statusCode = 400): Response
+    private const CONTENT_TYPE = 'application/json';
+    private const DEFAULT_ERROR_CODE = 400;
+    private const VALIDATION_ERROR_CODE = 422;
+
+    public static function jsonResponse(Response $response, string $message, int $statusCode = self::DEFAULT_ERROR_CODE): Response
     {
         $response->getBody()->write(json_encode([
             'status' => 'error',
             'message' => $message
-        ]));
+        ], JSON_THROW_ON_ERROR));
 
         return $response
-            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Content-Type', self::CONTENT_TYPE)
             ->withStatus($statusCode);
     }
 
@@ -24,25 +30,25 @@ class ErrorHandler
             'status' => 'error',
             'message' => 'Validation failed',
             'errors' => $errors
-        ]));
+        ], JSON_THROW_ON_ERROR));
 
         return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus(422);
+            ->withHeader('Content-Type', self::CONTENT_TYPE)
+            ->withStatus(self::VALIDATION_ERROR_CODE);
     }
 
-    public static function successResponse(Response $response, $data = null, int $statusCode = 200): Response
+    public static function successResponse(Response $response, array $data = [], int $statusCode = 200): Response
     {
         $responseData = ['status' => 'success'];
         
-        if ($data !== null) {
+        if (!empty($data)) {
             $responseData['data'] = $data;
         }
 
-        $response->getBody()->write(json_encode($responseData));
+        $response->getBody()->write(json_encode($responseData, JSON_THROW_ON_ERROR));
 
         return $response
-            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Content-Type', self::CONTENT_TYPE)
             ->withStatus($statusCode);
     }
 }
