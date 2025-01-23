@@ -1,6 +1,4 @@
 # PHP
-src/vendor/
-src/composer.lock
 .env
 *.log
 
@@ -40,12 +38,3 @@ Thumbs.db
 /src/coverage/
 /src/phpunit.xml
 .phpunit.result.cache
-
-# Node modules (if using any JavaScript tools)
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# Build files
-/dist/
-/build/
